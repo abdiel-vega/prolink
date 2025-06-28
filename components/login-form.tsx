@@ -28,20 +28,40 @@ export function LoginForm({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data.user) {
+        // Check if user has completed profile setup
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username, full_name")
+          .eq("id", data.user.id)
+          .single();
+        
+        // If profile is incomplete, redirect to setup
+        if (!profile || !profile.username || !profile.full_name) {
+          router.push("/auth/setup");
+        } else {
+          // Profile is complete, redirect to dashboard
+          router.push("/dashboard");
+        }
+        router.refresh();
+      }
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      console.error("Login error:", error);
+      setError(error instanceof Error ? error.message : "An error occurred during login");
     } finally {
       setIsLoading(false);
     }
