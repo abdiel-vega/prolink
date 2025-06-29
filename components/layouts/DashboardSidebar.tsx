@@ -42,8 +42,8 @@ export function DashboardSidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          "h-screen bg-[#1F2937] transition-all duration-300 ease-in-out flex flex-col",
-          isExpanded ? "w-64" : "w-20"
+          "h-screen bg-background border-r border-border transition-all duration-300 ease-in-out flex flex-col",
+          isExpanded ? "w-52" : "w-20"
         )}
         onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}
@@ -59,9 +59,9 @@ export function DashboardSidebar() {
                 href={item.href}
                 className={cn(
                   "flex items-center rounded-lg p-3 transition-all duration-200",
-                  "text-[#9CA3AF] hover:text-[#D1D5DB] hover:bg-[#374151]",
+                  "text-muted-foreground hover:text-foreground hover:bg-accent",
                   "font-medium text-sm",
-                  isActive && "bg-[#10B981]/10 text-[#10B981] border-l-3 border-[#10B981]"
+                  isActive && "bg-primary/10 text-primary border-l-3 border-primary"
                 )}
               >
                 <IconComponent className="h-5 w-5 flex-shrink-0" />
@@ -80,7 +80,7 @@ export function DashboardSidebar() {
                   <TooltipTrigger asChild>
                     {linkContent}
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#111827] border-[#374151] text-[#D1D5DB]">
+                  <TooltipContent side="right" className="bg-popover border-border text-popover-foreground">
                     <p>{item.label}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -92,18 +92,18 @@ export function DashboardSidebar() {
         </nav>
 
         {/* User Profile Section */}
-        <div className="p-4 border-t border-[#374151]">
+        <div className="p-4">
           <Link
             href="/dashboard/profile"
             className={cn(
-              "flex items-center rounded-lg p-3 transition-all duration-200",
-              "text-[#9CA3AF] hover:text-[#D1D5DB] hover:bg-[#374151]",
-              pathname === "/dashboard/profile" && "bg-[#10B981]/10 text-[#10B981]"
+              "flex items-center rounded-lg p-2 transition-all duration-200",
+              "text-muted-foreground hover:text-foreground hover:bg-accent",
+              pathname === "/dashboard/profile" && "bg-primary/10 text-primary"
             )}
           >
             <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarImage src={avatarUrl || undefined} alt={username} />
-              <AvatarFallback className="bg-[#374151] text-[#D1D5DB]">
+              <AvatarFallback className="bg-secondary text-secondary-foreground">
                 {initials}
               </AvatarFallback>
             </Avatar>

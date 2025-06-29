@@ -103,11 +103,11 @@ export default function ProfessionalDashboard() {
 
   if (!user || !profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-gray-600 mb-4">Please log in to view your dashboard.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-4">Please log in to view your dashboard.</p>
             <Link href="/auth/login">
               <Button>Log In</Button>
             </Link>
@@ -119,23 +119,22 @@ export default function ProfessionalDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-64"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-muted rounded w-64"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded"></div>
+            ))}
           </div>
+        </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background rounded-xl">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
@@ -146,10 +145,10 @@ export default function ProfessionalDashboard() {
               size="lg"
             />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-foreground">
                 Welcome back, {profile.full_name || profile.username}!
               </h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Manage your services and track your business
               </p>
             </div>
@@ -176,13 +175,13 @@ export default function ProfessionalDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Earnings</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-muted-foreground">Total Earnings</p>
+                  <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(stats.totalEarnings)}
                   </p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <DollarSign className="w-6 h-6 text-green-600" />
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <DollarSign className="w-6 h-6 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -192,25 +191,11 @@ export default function ProfessionalDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Services</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.activeServices}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Active Services</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.activeServices}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <Users className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Bookings</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.pendingBookings}</p>
-                </div>
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <Calendar className="w-6 h-6 text-yellow-600" />
+                <div className="p-3 bg-blue-500/10 rounded-full">
+                  <Users className="w-6 h-6 text-blue-500" />
                 </div>
               </div>
             </CardContent>
@@ -220,15 +205,29 @@ export default function ProfessionalDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Rating</p>
+                  <p className="text-sm font-medium text-muted-foreground">Pending Bookings</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.pendingBookings}</p>
+                </div>
+                <div className="p-3 bg-yellow-500/10 rounded-full">
+                  <Calendar className="w-6 h-6 text-yellow-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Rating</p>
                   <div className="flex items-center space-x-1">
-                    <p className="text-2xl font-bold text-gray-900">{stats.averageRating}</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.averageRating}</p>
                     <Star className="w-5 h-5 text-yellow-500 fill-current" />
                   </div>
-                  <p className="text-xs text-gray-500">{stats.totalReviews} reviews</p>
+                  <p className="text-xs text-muted-foreground">{stats.totalReviews} reviews</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <TrendingUp className="w-6 h-6 text-purple-600" />
+                <div className="p-3 bg-purple-500/10 rounded-full">
+                  <TrendingUp className="w-6 h-6 text-purple-500" />
                 </div>
               </div>
             </CardContent>
@@ -250,15 +249,15 @@ export default function ProfessionalDashboard() {
               <div className="space-y-4">
                 {bookings.length === 0 ? (
                   <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">No bookings yet</p>
-                    <p className="text-sm text-gray-500">
+                    <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-foreground">No bookings yet</p>
+                    <p className="text-sm text-muted-foreground">
                       Your bookings will appear here once clients start booking your services
                     </p>
                   </div>
                 ) : (
                   bookings.slice(0, 5).map((booking: any) => (
-                    <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={booking.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <UserAvatar 
                           src={booking.client.avatar_url}
@@ -266,18 +265,18 @@ export default function ProfessionalDashboard() {
                           size="sm" 
                         />
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-foreground">
                             {booking.client.full_name || booking.client.username}
                           </p>
-                          <p className="text-sm text-gray-600">{booking.service.title}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm text-muted-foreground">{booking.service.title}</p>
+                          <p className="text-xs text-muted-foreground">
                             {formatDate(booking.booking_start_time)}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <StatusBadge status={booking.status} />
-                        <p className="text-sm font-medium text-gray-900 mt-1">
+                        <p className="text-sm font-medium text-foreground mt-1">
                           {formatCurrency(booking.amount_paid_in_cents)}
                         </p>
                       </div>
@@ -302,9 +301,9 @@ export default function ProfessionalDashboard() {
               <div className="space-y-4">
                 {services.length === 0 ? (
                   <div className="text-center py-8">
-                    <Plus className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">No services created yet</p>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <Plus className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-foreground">No services created yet</p>
+                    <p className="text-sm text-muted-foreground mb-4">
                       Create your first service to start accepting bookings
                     </p>
                     <Link href="/dashboard/services/new">
@@ -313,15 +312,15 @@ export default function ProfessionalDashboard() {
                   </div>
                 ) : (
                   services.slice(0, 3).map((service: any) => (
-                    <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={service.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
                       <div>
-                        <h4 className="font-medium text-gray-900">{service.title}</h4>
-                        <p className="text-sm text-gray-600 truncate">{service.description}</p>
+                        <h4 className="font-medium text-foreground">{service.title}</h4>
+                        <p className="text-sm text-muted-foreground truncate">{service.description}</p>
                         <div className="flex items-center space-x-2 mt-2">
                           <Badge variant={service.is_active ? 'default' : 'secondary'}>
                             {service.is_active ? 'Active' : 'Inactive'}
                           </Badge>
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-foreground">
                             {formatCurrency(service.price_in_cents)}
                           </span>
                         </div>
