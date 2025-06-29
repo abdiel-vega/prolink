@@ -1,0 +1,317 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { Database } from "@/lib/supabase/database.types";
+
+const profileInfoSchema = z.object({
+  full_name: z.string().min(1, "Full name is required").max(100),
+  title: z.string().max(100).optional().or(z.literal("")),
+  bio: z.string().max(500).optional().or(z.literal("")),
+  location: z.string().max(100).optional().or(z.literal("")),
+  phone_number: z.string().max(20).optional().or(z.literal("")),
+});
+
+const workExperienceSchema = z.object({
+  job_title: z.string().min(1, "Job title is required").max(100),
+  company_name: z.string().min(1, "Company name is required").max(100),
+  start_date: z.string().min(1, "Start date is required"),
+  end_date: z.string().optional().or(z.literal("")),
+  description: z.string().max(1000).optional().or(z.literal("")),
+});
+
+const portfolioProjectSchema = z.object({
+  project_title: z.string().min(1, "Project title is required").max(100),
+  description: z.string().max(1000).optional().or(z.literal("")),
+  project_url: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .or(z.literal("")),
+  cover_image_url: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .or(z.literal("")),
+});
+
+export async function updateProfileInfo(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const rawData = {
+      full_name: formData.get("full_name") as string,
+      title: (formData.get("title") as string) || "",
+      bio: (formData.get("bio") as string) || "",
+      location: (formData.get("location") as string) || "",
+      phone_number: (formData.get("phone_number") as string) || "",
+    };
+
+    const result = profileInfoSchema.safeParse(rawData);
+    if (!result.success) {
+      throw new Error(
+        `Validation failed: ${result.error.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
+    }
+
+    // Convert empty strings to null for database
+    const updateData = {
+      full_name: result.data.full_name,
+      title: result.data.title || null,
+      bio: result.data.bio || null,
+      location: result.data.location || null,
+      phone_number: result.data.phone_number || null,
+    };
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updateData)
+      .eq("id", user.id);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    throw error;
+  }
+}
+
+export async function addWorkExperience(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const rawData = {
+      job_title: formData.get("job_title") as string,
+      company_name: formData.get("company_name") as string,
+      start_date: formData.get("start_date") as string,
+      end_date: (formData.get("end_date") as string) || "",
+      description: (formData.get("description") as string) || "",
+    };
+
+    const result = workExperienceSchema.safeParse(rawData);
+    if (!result.success) {
+      throw new Error(
+        `Validation failed: ${result.error.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
+    }
+
+    const { error } = await supabase.from("work_experience").insert({
+      job_title: result.data.job_title,
+      company_name: result.data.company_name,
+      start_date: result.data.start_date,
+      end_date: result.data.end_date || null,
+      description: result.data.description || null,
+      profile_id: user.id,
+    });
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error adding work experience:", error);
+    throw error;
+  }
+}
+
+export async function updateWorkExperience(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const experienceId = formData.get("experienceId") as string;
+    if (!experienceId) {
+      throw new Error("Experience ID is required");
+    }
+
+    // Verify ownership
+    const { data: existing, error: checkError } = await supabase
+      .from("work_experience")
+      .select("profile_id")
+      .eq("id", experienceId)
+      .single();
+
+    if (checkError || !existing || existing.profile_id !== user.id) {
+      throw new Error("Work experience not found or unauthorized");
+    }
+
+    const rawData = {
+      job_title: formData.get("job_title") as string,
+      company_name: formData.get("company_name") as string,
+      start_date: formData.get("start_date") as string,
+      end_date: (formData.get("end_date") as string) || "",
+      description: (formData.get("description") as string) || "",
+    };
+
+    const result = workExperienceSchema.safeParse(rawData);
+    if (!result.success) {
+      throw new Error(
+        `Validation failed: ${result.error.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
+    }
+
+    const { error } = await supabase
+      .from("work_experience")
+      .update({
+        job_title: result.data.job_title,
+        company_name: result.data.company_name,
+        start_date: result.data.start_date,
+        end_date: result.data.end_date || null,
+        description: result.data.description || null,
+      })
+      .eq("id", experienceId);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating work experience:", error);
+    throw error;
+  }
+}
+
+export async function addPortfolioProject(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const rawData = {
+      project_title: formData.get("project_title") as string,
+      description: (formData.get("description") as string) || "",
+      project_url: (formData.get("project_url") as string) || "",
+      cover_image_url: (formData.get("cover_image_url") as string) || "",
+    };
+
+    const result = portfolioProjectSchema.safeParse(rawData);
+    if (!result.success) {
+      throw new Error(
+        `Validation failed: ${result.error.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
+    }
+
+    const { error } = await supabase.from("portfolio_projects").insert({
+      project_title: result.data.project_title,
+      description: result.data.description || null,
+      project_url: result.data.project_url || null,
+      cover_image_url: result.data.cover_image_url || null,
+      profile_id: user.id,
+    });
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error adding portfolio project:", error);
+    throw error;
+  }
+}
+
+export async function addSkillToProfile(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const skillId = formData.get("skillId") as string;
+    if (!skillId) {
+      throw new Error("Skill ID is required");
+    }
+
+    const { error } = await supabase.from("profile_skills").upsert({
+      profile_id: user.id,
+      skill_id: skillId,
+    });
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error adding skill:", error);
+    throw error;
+  }
+}
+
+export async function removeSkillFromProfile(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const skillId = formData.get("skillId") as string;
+    if (!skillId) {
+      throw new Error("Skill ID is required");
+    }
+
+    const { error } = await supabase
+      .from("profile_skills")
+      .delete()
+      .eq("profile_id", user.id)
+      .eq("skill_id", skillId);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error removing skill:", error);
+    throw error;
+  }
+}

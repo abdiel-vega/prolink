@@ -17,9 +17,9 @@ export type UserRole = "CLIENT" | "PROFESSIONAL";
 export type BookingStatus =
   | "PENDING_CONFIRMATION"
   | "CONFIRMED"
-  | "IN_PROGRESS"
   | "COMPLETED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "DECLINED";
 export type ServiceType = "TIME_BASED" | "PROJECT_BASED";
 export type PricingType = "FIXED" | "HOURLY";
 export type DeliveryTimeUnit = "MINUTES" | "HOURS" | "DAYS";

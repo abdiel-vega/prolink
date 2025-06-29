@@ -21,11 +21,6 @@ const statusConfig = {
     icon: CheckCircle,
     label: 'Confirmed'
   },
-  IN_PROGRESS: {
-    variant: 'default' as const,
-    icon: Play,
-    label: 'In Progress'
-  },
   COMPLETED: {
     variant: 'success' as const,
     icon: Check,
@@ -35,6 +30,11 @@ const statusConfig = {
     variant: 'error' as const,
     icon: X,
     label: 'Cancelled'
+  },
+  DECLINED: {
+    variant: 'error' as const,
+    icon: AlertCircle,
+    label: 'Declined'
   }
 }
 
