@@ -339,6 +339,135 @@ export async function addSkillToProfile(formData: FormData) {
   }
 }
 
+export async function getAvailableSkillsByCategory() {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    // Get all skills with their categories and check which ones the user already has
+    const { data: skillsData, error: skillsError } = await supabase
+      .from("skills")
+      .select(
+        `
+        id,
+        name,
+        category_id,
+        categories!inner (
+          id,
+          name
+        )
+      `
+      )
+      .order("name");
+
+    if (skillsError) throw skillsError;
+
+    // Get user's current skills
+    const { data: userSkills, error: userSkillsError } = await supabase
+      .from("profile_skills")
+      .select("skill_id")
+      .eq("profile_id", user.id);
+
+    if (userSkillsError) throw userSkillsError;
+
+    const userSkillIds = new Set(userSkills.map((ps) => ps.skill_id));
+
+    // Group skills by category and mark user's skills
+    const skillsByCategory = skillsData.reduce(
+      (acc, skill) => {
+        const category = skill.categories;
+        if (!category) return acc;
+
+        if (!acc[category.id]) {
+          acc[category.id] = {
+            id: category.id,
+            name: category.name,
+            skills: [],
+          };
+        }
+
+        acc[category.id].skills.push({
+          id: skill.id,
+          name: skill.name,
+          hasSkill: userSkillIds.has(skill.id),
+        });
+
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          id: string;
+          name: string;
+          skills: Array<{
+            id: string;
+            name: string;
+            hasSkill: boolean;
+          }>;
+        }
+      >
+    );
+
+    return {
+      success: true,
+      data: Object.values(skillsByCategory),
+    };
+  } catch (error) {
+    console.error("Error fetching skills by category:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to fetch skills",
+      data: [],
+    };
+  }
+}
+
+export async function addExistingSkillToProfile(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const skillId = formData.get("skill_id") as string;
+    if (!skillId) {
+      throw new Error("Skill ID is required");
+    }
+
+    // Add skill to profile (upsert to handle duplicates)
+    const { error: profileSkillError } = await supabase
+      .from("profile_skills")
+      .upsert({
+        profile_id: user.id,
+        skill_id: skillId,
+      });
+
+    if (profileSkillError) throw profileSkillError;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error adding skill:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to add skill",
+    };
+  }
+}
+
 export async function removeSkillFromProfile(formData: FormData) {
   try {
     const supabase = await createClient();

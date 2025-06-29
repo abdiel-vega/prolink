@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProfileForm, WorkExperienceForm, PortfolioForm, SkillsForm } from "./ProfileForms";
-import { Edit, Plus } from "lucide-react";
+import { Edit, Plus, Tag } from "lucide-react";
 import type { Profile, WorkExperience, PortfolioProject } from "@/types";
 
 interface ProfileEditButtonProps {
@@ -126,19 +126,12 @@ export function SkillsManageButton() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Plus className="w-4 h-4 mr-1" />
-          Manage Skills
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Manage Skills</DialogTitle>
-        </DialogHeader>
-        <SkillsForm open={open} onOpenChange={setOpen} />
-      </DialogContent>
-    </Dialog>
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Tag className="w-4 h-4 mr-1" />
+        Manage Skills
+      </Button>
+      <SkillsForm open={open} onOpenChange={setOpen} />
+    </>
   );
 }

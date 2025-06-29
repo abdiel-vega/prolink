@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateProfileInfo, addWorkExperience, updateWorkExperience, addPortfolioProject, addSkillToProfile } from "./actions";
-import { Loader2, Calendar, Building, ExternalLink, Tag } from "lucide-react";
+import { updateProfileInfo, addWorkExperience, updateWorkExperience, addPortfolioProject, addSkillToProfile, addExistingSkillToProfile, getAvailableSkillsByCategory, removeSkillFromProfile } from "./actions";
+import { Loader2, Calendar, Building, ExternalLink, Tag, Check, Plus, X } from "lucide-react";
 import type { Profile, WorkExperience, PortfolioProject } from "@/types";
 
 // Result type
@@ -44,14 +44,9 @@ const portfolioSchema = z.object({
   cover_image_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
-const skillSchema = z.object({
-  skill_name: z.string().min(1, "Skill name is required"),
-});
-
 type ProfileFormData = z.infer<typeof profileSchema>;
 type WorkExperienceFormData = z.infer<typeof workExperienceSchema>;
 type PortfolioFormData = z.infer<typeof portfolioSchema>;
-type SkillFormData = z.infer<typeof skillSchema>;
 
 interface ProfileFormProps {
   profile: Profile;
@@ -506,88 +501,232 @@ interface SkillsFormProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type SkillCategory = {
+  id: string;
+  name: string;
+  skills: Array<{
+    id: string;
+    name: string;
+    hasSkill: boolean;
+  }>;
+};
+
 export function SkillsForm({ open, onOpenChange }: SkillsFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result, setResult] = useState<ActionResult | null>(null);
+  const [categories, setCategories] = useState<SkillCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [processingSkills, setProcessingSkills] = useState<Set<string>>(new Set());
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<SkillFormData>({
-    resolver: zodResolver(skillSchema),
-  });
+  // Load skills when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadSkills();
+      setSelectedCategory("");
+    }
+  }, [open]);
 
-  const onSubmit = async (data: SkillFormData) => {
-    setIsSubmitting(true);
-    setResult(null);
-
-    const formData = new FormData();
-    formData.append("skill_name", data.skill_name);
-
-    const result = await addSkillToProfile(formData);
-    setResult(result);
-    setIsSubmitting(false);
-
-    if (result.success) {
-      reset();
-      onOpenChange(false);
-      window.location.reload();
+  const loadSkills = async () => {
+    setLoading(true);
+    try {
+      const result = await getAvailableSkillsByCategory();
+      if (result.success) {
+        setCategories(result.data);
+        // Auto-select first category if available
+        if (result.data.length > 0) {
+          setSelectedCategory(result.data[0].id);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading skills:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleAddSkill = async (skillId: string) => {
+    if (processingSkills.has(skillId)) return;
+
+    setProcessingSkills(prev => new Set(prev).add(skillId));
+
+    try {
+      const formData = new FormData();
+      formData.append("skill_id", skillId);
+      
+      const result = await addExistingSkillToProfile(formData);
+      
+      if (result.success) {
+        // Update local state to reflect the change
+        setCategories(prev => prev.map(category => ({
+          ...category,
+          skills: category.skills.map(skill =>
+            skill.id === skillId ? { ...skill, hasSkill: true } : skill
+          )
+        })));
+      }
+    } catch (error) {
+      console.error("Error adding skill:", error);
+    } finally {
+      setProcessingSkills(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(skillId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRemoveSkill = async (skillId: string) => {
+    if (processingSkills.has(skillId)) return;
+
+    setProcessingSkills(prev => new Set(prev).add(skillId));
+
+    try {
+      const formData = new FormData();
+      formData.append("skillId", skillId);
+      
+      const result = await removeSkillFromProfile(formData);
+      
+      if (result.success) {
+        // Update local state to reflect the change
+        setCategories(prev => prev.map(category => ({
+          ...category,
+          skills: category.skills.map(skill =>
+            skill.id === skillId ? { ...skill, hasSkill: false } : skill
+          )
+        })));
+      }
+    } catch (error) {
+      console.error("Error removing skill:", error);
+    } finally {
+      setProcessingSkills(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(skillId);
+        return newSet;
+      });
+    }
+  };
+
+  // Get skills for the selected category
+  const getFilteredSkills = () => {
+    if (!selectedCategory) return [];
+    
+    const category = categories.find(cat => cat.id === selectedCategory);
+    if (!category) return [];
+
+    return category.skills;
+  };
+
+  const filteredSkills = getFilteredSkills();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <Tag className="h-5 w-5 text-muted-foreground" />
-            <DialogTitle>Add Skill</DialogTitle>
+      <DialogContent className="max-w-4xl h-[85vh] flex flex-col bg-background border border-border">
+        <DialogHeader className="pb-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-semibold text-foreground">Skill Categories</DialogTitle>
+              <DialogDescription className="mt-1 text-muted-foreground">
+                Select category to view and manage skills for your profile.
+              </DialogDescription>
+            </div>
           </div>
-          <DialogDescription>
-            Add a new skill to your profile
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">
-              Skill Name *
-            </Label>
-            <Input
-              id="skill_name"
-              placeholder="e.g., React, Python, Graphic Design"
-              {...register("skill_name")}
-            />
-            {errors.skill_name && (
-              <p className="text-sm text-destructive">{errors.skill_name.message}</p>
+        {loading ? (
+          <div className="flex items-center justify-center flex-1">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Category Selection */}
+            <div className="mb-6 flex-shrink-0">
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`
+                      rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 border
+                      ${selectedCategory === category.id
+                        ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90'
+                        : 'bg-background text-foreground border-border hover:bg-muted hover:border-primary/50'
+                      }
+                    `}
+                  >
+                    {category.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selected Category Skills */}
+            {selectedCategory && (
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="mb-4 flex-shrink-0">
+                </div>
+
+                {filteredSkills.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center flex-1 text-center">
+                    <Tag className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      No skills available in this category.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto min-h-0 pr-2">
+                    <div className="flex flex-wrap gap-2 pb-4">
+                      {filteredSkills.map((skill) => (
+                        <button
+                          key={skill.id}
+                          type="button"
+                          disabled={processingSkills.has(skill.id)}
+                          onClick={() => skill.hasSkill ? handleRemoveSkill(skill.id) : handleAddSkill(skill.id)}
+                          className={`
+                            inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium 
+                            transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/50
+                            ${skill.hasSkill
+                              ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90'
+                              : 'bg-background text-foreground border-border hover:bg-muted hover:border-primary/50'
+                            }
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                          `}
+                        >
+                          <span>{skill.name}</span>
+                          {processingSkills.has(skill.id) ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : skill.hasSkill ? (
+                            <X className="h-3 w-3" />
+                          ) : (
+                            <Plus className="h-3 w-3" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
+        )}
 
-          {result && !result.success && (
-            <div className="p-3 rounded-md text-sm bg-destructive/10 text-destructive border border-destructive/20">
-              {result.message}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Add Skill
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter className="flex justify-between pt-4 border-t border-border flex-shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="px-6"
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-6"
+          >
+            Next
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

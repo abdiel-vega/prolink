@@ -13,10 +13,10 @@ import {
   PortfolioAddButton, 
   SkillsManageButton 
 } from './ProfileButtons'
+import { SkillCard } from './SkillCard'
 import { formatDate } from '@/lib/utils/formatting'
-import { removeSkillFromProfile } from './actions'
 import { Database } from '@/lib/supabase/database.types'
-import { User, Briefcase, FolderOpen, Award, ExternalLink, X } from 'lucide-react'
+import { User, Briefcase, FolderOpen, Award, ExternalLink } from 'lucide-react'
 
 type ProfileWithDetails = Database['public']['Tables']['profiles']['Row'] & {
   work_experience: Database['public']['Tables']['work_experience']['Row'][]
@@ -31,40 +31,6 @@ type ProfileWithDetails = Database['public']['Tables']['profiles']['Row'] & {
       }
     }
   }[]
-}
-
-interface SkillCardProps {
-  profileSkill: ProfileWithDetails['profile_skills'][0]
-}
-
-function SkillCard({ profileSkill }: SkillCardProps) {
-  const handleRemove = async () => {
-    const formData = new FormData()
-    formData.append('skillId', profileSkill.skill_id)
-    await removeSkillFromProfile(formData)
-    window.location.reload()
-  }
-
-  return (
-    <div className="group relative">
-      <Badge variant="outline" className="pr-8">
-        {profileSkill.skill.name}
-        {profileSkill.skill.category && (
-          <span className="ml-1 text-xs text-muted-foreground">
-            ({profileSkill.skill.category.name})
-          </span>
-        )}
-      </Badge>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground hover:bg-destructive/90"
-        onClick={handleRemove}
-      >
-        <X className="h-3 w-3" />
-      </Button>
-    </div>
-  )
 }
 
 interface WorkExperienceCardProps {
