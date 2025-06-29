@@ -144,14 +144,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "profile_skills_profile_id_fkey"
+            foreignKeyName: "fk_profile"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "profile_skills_skill_id_fkey"
+            foreignKeyName: "fk_skill"
             columns: ["skill_id"]
             isOneToOne: false
             referencedRelation: "skills"
@@ -313,13 +313,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "services_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "services_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -330,21 +323,32 @@ export type Database = {
       }
       skills: {
         Row: {
+          category_id: string
           created_at: string
           id: string
           name: string
         }
         Insert: {
+          category_id: string
           created_at?: string
           id?: string
           name: string
         }
         Update: {
+          category_id?: string
           created_at?: string
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "skills_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_experience: {
         Row: {

@@ -51,7 +51,11 @@ export type ProfessionalWithDetails = Profile & {
   services: ServiceWithProfile[];
   portfolio_projects: PortfolioProject[];
   work_experience: WorkExperience[];
-  skills: { skill: Skill }[];
+  profile_skills: {
+    skill: Skill & {
+      category?: Pick<Category, "id" | "name">;
+    };
+  }[];
   _count?: {
     services: number;
     reviews: number;

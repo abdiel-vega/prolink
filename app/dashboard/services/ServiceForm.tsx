@@ -18,7 +18,7 @@ import { DialogClose } from '@/components/ui/dialog'
 const serviceFormSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters').max(1000),
-  price_in_cents: z.number().min(500, 'Minimum price is $5.00'),
+  price_in_dollars: z.number().min(5, 'Minimum price is $5.00'), // Changed to dollars for better UX
   category_id: z.string().optional(),
   service_type: z.enum(['TIME_BASED', 'PROJECT_BASED']),
   pricing_type: z.enum(['FIXED', 'HOURLY']),
@@ -47,7 +47,7 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
     defaultValues: {
       title: service?.title || '',
       description: service?.description || '',
-      price_in_cents: service?.price_in_cents || 500,
+      price_in_dollars: service ? service.price_in_cents / 100 : 5, // Convert to dollars for display
       category_id: service?.category_id || undefined,
       service_type: service?.service_type || 'TIME_BASED',
       pricing_type: service?.pricing_type || 'FIXED',
@@ -78,8 +78,15 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
       setLoading(true)
       
       const formData = new FormData()
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) {
+      // Convert price from dollars to cents before submitting
+      const dataWithCents = {
+        ...data,
+        price_in_cents: Math.round(data.price_in_dollars * 100)
+      }
+      
+      // Remove the dollar field and add all other fields
+      Object.entries(dataWithCents).forEach(([key, value]) => {
+        if (key !== 'price_in_dollars' && value !== undefined) {
           formData.append(key, value.toString())
         }
       })
@@ -91,6 +98,7 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
         await createService(formData)
       }
 
+      // Close the modal and refresh the page
       onSuccess?.()
       
     } catch (error) {
@@ -137,56 +145,28 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
           )}
         </div>
 
-        {/* Price */}
-        <div>
-          <Label htmlFor="price">Price (USD) *</Label>
-          <div className="relative mt-1">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-              $
-            </span>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="5"
-              {...form.register('price_in_cents', {
-                valueAsNumber: true,
-                setValueAs: (value) => Math.round(value * 100) // Convert dollars to cents
-              })}
-              defaultValue={service ? service.price_in_cents / 100 : 5}
-              className="pl-7"
-            />
-          </div>
-          {form.formState.errors.price_in_cents && (
-            <p className="text-sm text-destructive mt-1">
-              {form.formState.errors.price_in_cents.message}
-            </p>
-          )}
-        </div>
-
-        {/* Category */}
-        <div>
-          <Label htmlFor="category">Category</Label>
-          <Select
-            value={form.watch('category_id') || ''}
-            onValueChange={(value) => form.setValue('category_id', value || undefined)}
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">No category</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Service Type and Pricing Type */}
+        {/* Category and Service Type */}
         <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Select
+              value={form.watch('category_id') || 'none'}
+              onValueChange={(value) => form.setValue('category_id', value === 'none' ? undefined : value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No category</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <Label htmlFor="service_type">Service Type *</Label>
             <Select
@@ -201,6 +181,34 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
                 <SelectItem value="PROJECT_BASED">Project-Based</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </div>
+
+        {/* Price and Pricing Type */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="price">Price (USD) *</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                $
+              </span>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="5"
+                {...form.register('price_in_dollars', {
+                  valueAsNumber: true
+                })}
+                placeholder="5.00"
+                className="pl-7"
+              />
+            </div>
+            {form.formState.errors.price_in_dollars && (
+              <p className="text-sm text-destructive mt-1">
+                {form.formState.errors.price_in_dollars.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -222,7 +230,7 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
 
         {/* Delivery Time */}
         <div>
-          <Label htmlFor="delivery_time">Delivery Time *</Label>
+          <Label htmlFor="delivery_time">Session / Delivery Time *</Label>
           <div className="grid grid-cols-2 gap-2 mt-1">
             <Input
               type="number"

@@ -263,23 +263,79 @@ export async function addSkillToProfile(formData: FormData) {
       redirect("/auth/login");
     }
 
-    const skillId = formData.get("skillId") as string;
-    if (!skillId) {
-      throw new Error("Skill ID is required");
+    const skillName = formData.get("skill_name") as string;
+    if (!skillName) {
+      throw new Error("Skill name is required");
     }
 
-    const { error } = await supabase.from("profile_skills").upsert({
-      profile_id: user.id,
-      skill_id: skillId,
-    });
+    // Find or create the skill
+    let skillId: string;
 
-    if (error) throw error;
+    // First try to find existing skill (case insensitive)
+    const { data: existingSkill } = await supabase
+      .from("skills")
+      .select("id")
+      .ilike("name", skillName)
+      .maybeSingle();
+
+    if (existingSkill) {
+      skillId = existingSkill.id;
+    } else {
+      // Create new skill - we'll put it in a default "General" category for now
+      // First, ensure we have a default category
+      let categoryId: string;
+      const { data: generalCategory } = await supabase
+        .from("categories")
+        .select("id")
+        .ilike("name", "General")
+        .maybeSingle();
+
+      if (generalCategory) {
+        categoryId = generalCategory.id;
+      } else {
+        // Create the General category
+        const { data: newCategory, error: categoryError } = await supabase
+          .from("categories")
+          .insert({ name: "General" })
+          .select("id")
+          .single();
+
+        if (categoryError) throw categoryError;
+        categoryId = newCategory.id;
+      }
+
+      // Create the skill
+      const { data: newSkill, error: skillError } = await supabase
+        .from("skills")
+        .insert({
+          name: skillName,
+          category_id: categoryId,
+        })
+        .select("id")
+        .single();
+
+      if (skillError) throw skillError;
+      skillId = newSkill.id;
+    }
+
+    // Add skill to profile (upsert to handle duplicates)
+    const { error: profileSkillError } = await supabase
+      .from("profile_skills")
+      .upsert({
+        profile_id: user.id,
+        skill_id: skillId,
+      });
+
+    if (profileSkillError) throw profileSkillError;
 
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
     console.error("Error adding skill:", error);
-    throw error;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to add skill",
+    };
   }
 }
 
@@ -312,6 +368,10 @@ export async function removeSkillFromProfile(formData: FormData) {
     return { success: true };
   } catch (error) {
     console.error("Error removing skill:", error);
-    throw error;
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to remove skill",
+    };
   }
 }

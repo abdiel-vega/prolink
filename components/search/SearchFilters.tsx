@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { useSearchStore } from '@/lib/stores/searchStore'
-import { CATEGORIES, SERVICE_TYPES_ARRAY, PRICING_TYPES } from '@/lib/utils/constants'
+import { SERVICE_TYPES_ARRAY, PRICING_TYPES } from '@/lib/utils/constants'
 import { formatCurrency } from '@/lib/utils/formatting'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Database } from '@/lib/supabase/database.types'
 // import { Slider } from '@/components/ui/slider'
 import { 
   Select,
@@ -18,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue 
 } from '@/components/ui/select'
+
+type Category = Database['public']['Tables']['categories']['Row']
 
 const SORT_OPTIONS = [
   { value: 'relevance', label: 'Most Relevant' },
@@ -29,10 +33,28 @@ const SORT_OPTIONS = [
 
 export function SearchFilters() {
   const { filters, setFilters, loadServices } = useSearchStore()
+  const [categories, setCategories] = useState<Category[]>([])
   const [priceRange, setPriceRange] = useState([
     filters.price_min || 0,
     filters.price_max || 50000
   ])
+  const supabase = createClientComponentClient<Database>()
+
+  // Load categories from database
+  useEffect(() => {
+    const loadCategories = async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name')
+      
+      if (data && !error) {
+        setCategories(data)
+      }
+    }
+
+    loadCategories()
+  }, [supabase])
 
   const handlePriceChange = (value: number[]) => {
     setPriceRange(value)
@@ -179,7 +201,7 @@ export function SearchFilters() {
           <CardTitle className="text-sm font-medium">Categories</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {CATEGORIES.map((category) => (
+          {categories.map((category) => (
             <div key={category.id} className="flex items-center space-x-2">
               <Checkbox
                 id={category.id}

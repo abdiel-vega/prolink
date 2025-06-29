@@ -4,131 +4,13 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { ServiceForm } from '@/app/dashboard/services/ServiceForm'
-import { formatCurrency, getDeliveryTimeString } from '@/lib/utils/formatting'
-import { deleteService } from '@/app/dashboard/services/actions'
+import { ServiceCard } from '@/app/dashboard/services/ServiceCard'
+import { CreateServiceDialog } from '@/app/dashboard/services/CreateServiceDialog'
 import { Database } from '@/lib/supabase/database.types'
-import { Plus, Edit, Trash2, Eye, DollarSign, Clock, Package } from 'lucide-react'
+import { Plus, Package } from 'lucide-react'
 
 type ServiceWithCategory = Database['public']['Tables']['services']['Row'] & {
   category: Pick<Database['public']['Tables']['categories']['Row'], 'name'> | null
-}
-
-interface ServiceCardProps {
-  service: ServiceWithCategory
-}
-
-function ServiceCard({ service }: ServiceCardProps) {
-  return (
-    <Card className="card-surface">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-foreground">{service.title}</h3>
-              <Badge variant={service.is_active ? 'default' : 'secondary'}>
-                {service.is_active ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {service.description}
-            </p>
-            {service.category && (
-              <Badge variant="outline" className="mb-3">
-                {service.category.name}
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium text-foreground">
-                {formatCurrency(service.price_in_cents)}
-                {service.pricing_type === 'HOURLY' && '/hr'}
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                {getDeliveryTimeString(service.delivery_time_value, service.delivery_time_unit)}
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Package className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                {service.service_type.replace('_', ' ')}
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant="outline">
-                {service.pricing_type}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="flex space-x-2 pt-4 border-t border-border">
-            <Button variant="outline" size="sm" asChild>
-              <a href={`/services/${service.id}`} target="_blank">
-                <Eye className="w-4 h-4 mr-1" />
-                View
-              </a>
-            </Button>
-            
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>Edit Service</DialogTitle>
-                </DialogHeader>
-                <ServiceForm service={service} />
-              </DialogContent>
-            </Dialog>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Service</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete "{service.title}"? This action cannot be undone.
-                    All related bookings will also be affected.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={async () => {
-                      const formData = new FormData()
-                      formData.append('serviceId', service.id)
-                      await deleteService(formData)
-                    }}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Delete Service
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
 }
 
 export default async function ServicesPage() {
@@ -156,20 +38,44 @@ export default async function ServicesPage() {
     redirect('/dashboard')
   }
 
-  // Fetch professional's services
+  // Fetch professional's services with categories
+  // Using manual join since foreign key relationship may not be set up yet
   const { data: services } = await supabase
     .from('services')
-    .select(`
-      *,
-      category:categories (
-        name
-      )
-    `)
+    .select('*')
     .eq('profile_id', user.id)
     .order('created_at', { ascending: false })
 
-  const activeServices = services?.filter(s => s.is_active).length || 0
-  const totalServices = services?.length || 0
+  let servicesWithCategories: ServiceWithCategory[] = []
+  
+  if (services && services.length > 0) {
+    const categoryIds = services
+      .map(s => s.category_id)
+      .filter(Boolean) as string[]
+    
+    let categoriesMap: Record<string, { name: string }> = {}
+    
+    if (categoryIds.length > 0) {
+      const { data: categories } = await supabase
+        .from('categories')
+        .select('id, name')
+        .in('id', categoryIds)
+      
+      if (categories) {
+        categoriesMap = Object.fromEntries(
+          categories.map(cat => [cat.id, { name: cat.name }])
+        )
+      }
+    }
+
+    servicesWithCategories = services.map(service => ({
+      ...service,
+      category: service.category_id ? categoriesMap[service.category_id] || null : null
+    }))
+  }
+
+  const activeServices = servicesWithCategories?.filter(s => s.is_active).length || 0
+  const totalServices = servicesWithCategories?.length || 0
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -189,26 +95,18 @@ export default async function ServicesPage() {
           </div>
         </div>
         
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create New Service
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Create New Service</DialogTitle>
-            </DialogHeader>
-            <ServiceForm />
-          </DialogContent>
-        </Dialog>
+        <CreateServiceDialog>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Service
+          </Button>
+        </CreateServiceDialog>
       </div>
 
-      {services && services.length > 0 ? (
+      {servicesWithCategories && servicesWithCategories.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service) => (
-            <ServiceCard key={service.id} service={service as ServiceWithCategory} />
+          {servicesWithCategories.map((service) => (
+            <ServiceCard key={service.id} service={service} />
           ))}
         </div>
       ) : (
@@ -222,20 +120,12 @@ export default async function ServicesPage() {
               Create your first service to start accepting bookings from clients. 
               You can offer time-based consultations or project-based work.
             </p>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Service
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>Create New Service</DialogTitle>
-                </DialogHeader>
-                <ServiceForm />
-              </DialogContent>
-            </Dialog>
+            <CreateServiceDialog>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Service
+              </Button>
+            </CreateServiceDialog>
           </CardContent>
         </Card>
       )}

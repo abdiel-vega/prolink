@@ -5,7 +5,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "types:generate": "npx supabase gen types typescript --project-id omwemfshvuijjtdjgmha > lib/supabase/database.types.ts"
+    "types:generate": "npx supabase gen types typescript --project-id omwemfshvuijjtdjgmha > lib/supabase/database.types.ts",
+    "seed:categories": "npx tsx scripts/seed-categories-skills.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

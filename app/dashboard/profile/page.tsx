@@ -14,15 +14,57 @@ import {
   SkillsManageButton 
 } from './ProfileButtons'
 import { formatDate } from '@/lib/utils/formatting'
+import { removeSkillFromProfile } from './actions'
 import { Database } from '@/lib/supabase/database.types'
-import { User, Briefcase, FolderOpen, Award, ExternalLink } from 'lucide-react'
+import { User, Briefcase, FolderOpen, Award, ExternalLink, X } from 'lucide-react'
 
 type ProfileWithDetails = Database['public']['Tables']['profiles']['Row'] & {
   work_experience: Database['public']['Tables']['work_experience']['Row'][]
   portfolio_projects: Database['public']['Tables']['portfolio_projects']['Row'][]
-  profile_skills: (Database['public']['Tables']['profile_skills']['Row'] & {
-    skill: Database['public']['Tables']['skills']['Row']
-  })[]
+  profile_skills: {
+    profile_id: string
+    skill_id: string
+    skill: Database['public']['Tables']['skills']['Row'] & {
+      category?: {
+        id: string
+        name: string
+      }
+    }
+  }[]
+}
+
+interface SkillCardProps {
+  profileSkill: ProfileWithDetails['profile_skills'][0]
+}
+
+function SkillCard({ profileSkill }: SkillCardProps) {
+  const handleRemove = async () => {
+    const formData = new FormData()
+    formData.append('skillId', profileSkill.skill_id)
+    await removeSkillFromProfile(formData)
+    window.location.reload()
+  }
+
+  return (
+    <div className="group relative">
+      <Badge variant="outline" className="pr-8">
+        {profileSkill.skill.name}
+        {profileSkill.skill.category && (
+          <span className="ml-1 text-xs text-muted-foreground">
+            ({profileSkill.skill.category.name})
+          </span>
+        )}
+      </Badge>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        onClick={handleRemove}
+      >
+        <X className="h-3 w-3" />
+      </Button>
+    </div>
+  )
 }
 
 interface WorkExperienceCardProps {
@@ -103,7 +145,13 @@ export default async function ProfilePage() {
       portfolio_projects (*),
       profile_skills (
         *,
-        skill:skills (*)
+        skill:skills (
+          *,
+          category:categories (
+            id,
+            name
+          )
+        )
       )
     `)
     .eq('id', user.id)
@@ -242,9 +290,7 @@ export default async function ProfilePage() {
               {profile.profile_skills && profile.profile_skills.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {profile.profile_skills.map((profileSkill) => (
-                    <Badge key={profileSkill.skill_id} variant="outline">
-                      {profileSkill.skill.name}
-                    </Badge>
+                    <SkillCard key={profileSkill.skill_id} profileSkill={profileSkill} />
                   ))}
                 </div>
               ) : (
