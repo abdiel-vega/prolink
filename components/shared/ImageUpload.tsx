@@ -66,8 +66,8 @@ export function ImageUpload({
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // Calculate new dimensions (max 200x200)
-          const maxSize = 200;
+          // Calculate new dimensions (max 400x400 for better quality)
+          const maxSize = 400;
           let { width, height } = img;
           
           if (width > height) {
@@ -87,8 +87,8 @@ export function ImageUpload({
           
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // Convert to smaller base64 (JPEG with 0.7 quality)
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          // Convert to higher quality JPEG (0.85 quality)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
           onChange(compressedDataUrl);
         };
         img.src = result;
@@ -188,10 +188,9 @@ export function ImageUpload({
         {preview && (
           <Button
             type="button"
-            variant="ghost"
+            variant="destructive"
             size="sm"
             onClick={handleRemove}
-            className="text-destructive hover:bg-destructive/20"
           >
             <X className="w-4 h-4 mr-2" />
             Remove

@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import type { Skill } from "@/types";
 
 interface SkillsCloudProps {
@@ -22,9 +19,6 @@ interface SkillWithCategory extends Skill {
 }
 
 export function SkillsCloud({ skills, className = "" }: SkillsCloudProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   // Group skills by category
   const groupedSkills = skills.reduce((acc, skill) => {
     // For now, we'll create a default category since the DB doesn't have category info
@@ -34,25 +28,6 @@ export function SkillsCloud({ skills, className = "" }: SkillsCloudProps) {
       acc[categoryName] = [];
     }
     acc[categoryName].push(skill);
-    return acc;
-  }, {} as Record<string, Skill[]>);
-
-  const categories = Object.keys(groupedSkills);
-
-  // Filter skills based on search and category
-  const filteredGroupedSkills = Object.entries(groupedSkills).reduce((acc, [category, categorySkills]) => {
-    if (selectedCategory && category !== selectedCategory) {
-      return acc;
-    }
-
-    const filtered = categorySkills.filter(skill =>
-      skill.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (filtered.length > 0) {
-      acc[category] = filtered;
-    }
-
     return acc;
   }, {} as Record<string, Skill[]>);
 
@@ -83,47 +58,8 @@ export function SkillsCloud({ skills, className = "" }: SkillsCloudProps) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Search and Filter */}
-      <Card className="card-secondary">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search skills..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={selectedCategory === null ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(null)}
-                className={selectedCategory === null ? "bg-white text-gray-900" : ""}
-              >
-                All ({skills.length})
-              </Button>
-              {categories.map(category => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className={selectedCategory === category ? "bg-white text-gray-900" : ""}
-                >
-                  {category} ({groupedSkills[category].length})
-                </Button>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Skills by Category */}
-      {Object.entries(filteredGroupedSkills).map(([category, categorySkills]) => (
+      {Object.entries(groupedSkills).map(([category, categorySkills]) => (
         <Card key={category} className="card-surface">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -152,7 +88,7 @@ export function SkillsCloud({ skills, className = "" }: SkillsCloudProps) {
       ))}
 
       {/* No Results */}
-      {Object.keys(filteredGroupedSkills).length === 0 && (
+      {Object.keys(groupedSkills).length === 0 && (
         <Card className="card-surface text-center py-8">
           <CardContent>
             <p className="text-muted-foreground mb-2">No skills found</p>
@@ -172,7 +108,7 @@ export function SkillsCloud({ skills, className = "" }: SkillsCloudProps) {
               <div className="text-sm text-muted-foreground">Total Skills</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-foreground">{categories.length}</div>
+              <div className="text-2xl font-bold text-foreground">{Object.keys(groupedSkills).length}</div>
               <div className="text-sm text-muted-foreground">Categories</div>
             </div>
             <div>

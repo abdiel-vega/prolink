@@ -91,6 +91,64 @@ export async function updateProfileInfo(formData: FormData) {
   }
 }
 
+export async function updateProfileAvatar(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const avatarUrl = formData.get("avatar_url") as string;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: avatarUrl || null })
+      .eq("id", user.id);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating avatar:", error);
+    throw error;
+  }
+}
+
+export async function updateProfileHeader(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const headerImageUrl = formData.get("header_image_url") as string;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ header_image_url: headerImageUrl || null })
+      .eq("id", user.id);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating header image:", error);
+    throw error;
+  }
+}
+
 export async function addWorkExperience(formData: FormData) {
   try {
     const supabase = await createClient();
@@ -205,6 +263,49 @@ export async function updateWorkExperience(formData: FormData) {
   }
 }
 
+export async function deleteWorkExperience(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const experienceId = formData.get("experienceId") as string;
+    if (!experienceId) {
+      throw new Error("Experience ID is required");
+    }
+
+    // Verify ownership before deletion
+    const { data: existing, error: checkError } = await supabase
+      .from("work_experience")
+      .select("profile_id")
+      .eq("id", experienceId)
+      .single();
+
+    if (checkError || !existing || existing.profile_id !== user.id) {
+      throw new Error("Work experience not found or unauthorized");
+    }
+
+    const { error } = await supabase
+      .from("work_experience")
+      .delete()
+      .eq("id", experienceId);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting work experience:", error);
+    throw error;
+  }
+}
+
 export async function addPortfolioProject(formData: FormData) {
   try {
     const supabase = await createClient();
@@ -302,8 +403,52 @@ export async function updatePortfolioProject(formData: FormData) {
         description: result.data.description || null,
         project_url: result.data.project_url || null,
         cover_image_url: result.data.cover_image_url || null,
-        updated_at: new Date().toISOString(),
       })
+      .eq("id", projectId);
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating portfolio project:", error);
+    throw error;
+  }
+}
+
+export async function deletePortfolioProject(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const projectId = formData.get("projectId") as string;
+    if (!projectId) {
+      throw new Error("Project ID is required");
+    }
+
+    // Verify ownership before deletion
+    const { data: existing, error: checkError } = await supabase
+      .from("portfolio_projects")
+      .select("profile_id")
+      .eq("id", projectId)
+      .single();
+
+    if (checkError || !existing || existing.profile_id !== user.id) {
+      throw new Error("Portfolio project not found or unauthorized");
+    }
+
+    const { error } = await supabase
+      .from("portfolio_projects")
+      .delete()
       .eq("id", projectId);
 
     if (error) throw error;
@@ -311,7 +456,7 @@ export async function updatePortfolioProject(formData: FormData) {
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
-    console.error("Error updating portfolio project:", error);
+    console.error("Error deleting portfolio project:", error);
     throw error;
   }
 }

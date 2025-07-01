@@ -9,8 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateProfileInfo, addWorkExperience, updateWorkExperience, addPortfolioProject, updatePortfolioProject, addSkillToProfile, addExistingSkillToProfile, getAvailableSkillsByCategory, removeSkillFromProfile } from "./actions";
-import { Loader2, Calendar, Building, ExternalLink, Tag, Check, Plus, X } from "lucide-react";
+import { ImageUpload } from "@/components/shared/ImageUpload";
+import { HeaderImageUpload } from "@/components/shared/HeaderImageUpload";
+import { PortfolioCoverImageUpload } from "@/components/shared/PortfolioCoverImageUpload";
+import { updateProfileInfo, addWorkExperience, updateWorkExperience, addPortfolioProject, updatePortfolioProject, addSkillToProfile, addExistingSkillToProfile, getAvailableSkillsByCategory, removeSkillFromProfile, updateProfileAvatar, updateProfileHeader, deleteWorkExperience, deletePortfolioProject } from "./actions";
+import { Loader2, Calendar, Building, ExternalLink, Tag, Check, Plus, X, User, Image } from "lucide-react";
 import type { Profile, WorkExperience, PortfolioProject } from "@/types";
 
 // Result type
@@ -41,7 +44,6 @@ const portfolioSchema = z.object({
   project_title: z.string().min(1, "Project title is required"),
   description: z.string().optional(),
   project_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  cover_image_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -358,7 +360,20 @@ interface PortfolioFormProps {
 export function PortfolioForm({ project, open, onOpenChange }: PortfolioFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState(project?.cover_image_url || "");
+  const [coverImageError, setCoverImageError] = useState<string | null>(null);
   const isEditing = !!project;
+
+  // Reset cover image state when dialog opens/closes or project changes
+  useEffect(() => {
+    if (open && project) {
+      setCoverImageUrl(project.cover_image_url || "");
+    } else if (open && !project) {
+      setCoverImageUrl("");
+    }
+    setCoverImageError(null);
+    setResult(null);
+  }, [open, project]);
 
   const {
     register,
@@ -370,16 +385,36 @@ export function PortfolioForm({ project, open, onOpenChange }: PortfolioFormProp
       project_title: project?.project_title || "",
       description: project?.description || "",
       project_url: project?.project_url || "",
-      cover_image_url: project?.cover_image_url || "",
     },
   });
 
   const onSubmit = async (data: PortfolioFormData) => {
     setIsSubmitting(true);
     setResult(null);
+    setCoverImageError(null);
+
+    // Validate cover image URL if provided
+    if (coverImageUrl && coverImageUrl.trim()) {
+      try {
+        new URL(coverImageUrl);
+      } catch {
+        // Only validate if it's not a data URL (uploaded file)
+        if (!coverImageUrl.startsWith('data:')) {
+          setCoverImageError("Invalid image URL format");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+    }
 
     const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
+    // Use the controlled cover image state instead of form data
+    const submitData = {
+      ...data,
+      cover_image_url: coverImageUrl.trim()
+    };
+    
+    Object.entries(submitData).forEach(([key, value]) => {
       formData.append(key, value || "");
     });
 
@@ -387,22 +422,30 @@ export function PortfolioForm({ project, open, onOpenChange }: PortfolioFormProp
       formData.append("projectId", project.id);
     }
 
-    const result = isEditing 
-      ? await updatePortfolioProject(formData)
-      : await addPortfolioProject(formData);
-    
-    setResult(result);
-    setIsSubmitting(false);
+    try {
+      const result = isEditing 
+        ? await updatePortfolioProject(formData)
+        : await addPortfolioProject(formData);
+      
+      setResult(result);
+      setIsSubmitting(false);
 
-    if (result.success) {
-      onOpenChange(false);
-      window.location.reload();
+      if (result.success) {
+        onOpenChange(false);
+        window.location.reload();
+      }
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to save project"
+      });
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <ExternalLink className="h-5 w-5 text-muted-foreground" />
@@ -456,17 +499,13 @@ export function PortfolioForm({ project, open, onOpenChange }: PortfolioFormProp
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cover_image_url">
-              Image URL
-            </Label>
-            <Input
-              id="cover_image_url"
-              type="url"
-              placeholder="https://example.com/image.jpg"
-              {...register("cover_image_url")}
+            <PortfolioCoverImageUpload
+              value={coverImageUrl}
+              onChange={setCoverImageUrl}
+              label="Cover Image"
             />
-            {errors.cover_image_url && (
-              <p className="text-sm text-destructive">{errors.cover_image_url.message}</p>
+            {coverImageError && (
+              <p className="text-sm text-destructive">{coverImageError}</p>
             )}
           </div>
 
@@ -729,6 +768,173 @@ export function SkillsForm({ open, onOpenChange }: SkillsFormProps) {
             Next
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface AvatarFormProps {
+  currentAvatar?: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function AvatarForm({ currentAvatar, open, onOpenChange }: AvatarFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState(currentAvatar || "");
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("avatar_url", avatarUrl);
+
+    try {
+      const result = await updateProfileAvatar(formData);
+      setResult(result);
+      
+      if (result.success) {
+        onOpenChange(false);
+        window.location.reload();
+      }
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to update avatar"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <User className="h-5 w-5 text-muted-foreground" />
+            <DialogTitle>Update Profile Picture</DialogTitle>
+          </div>
+          <DialogDescription>
+            Upload a new profile picture to personalize your account
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={onSubmit} className="space-y-6">
+          <ImageUpload
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            fallbackText="U"
+            size="lg"
+            label="Profile Picture"
+            className="mx-auto"
+          />
+
+          {result && !result.success && (
+            <div className="text-red-600 text-sm bg-red-50 dark:bg-red-950/20 p-3 rounded-md border border-red-200 dark:border-red-800">
+              {result.message}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Update Picture"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface HeaderFormProps {
+  currentHeader?: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function HeaderForm({ currentHeader, open, onOpenChange }: HeaderFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [headerUrl, setHeaderUrl] = useState(currentHeader || "");
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("header_image_url", headerUrl);
+
+    try {
+      const result = await updateProfileHeader(formData);
+      setResult(result);
+      
+      if (result.success) {
+        onOpenChange(false);
+        window.location.reload();
+      }
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to update header"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <Image className="h-5 w-5 text-muted-foreground" />
+            <DialogTitle>Update Header Image</DialogTitle>
+          </div>
+          <DialogDescription>
+            Upload a header image to showcase your professional brand
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={onSubmit} className="space-y-6">
+          <HeaderImageUpload
+            value={headerUrl}
+            onChange={setHeaderUrl}
+            label="Header Image"
+          />
+
+          {result && !result.success && (
+            <div className="text-red-600 text-sm bg-red-50 dark:bg-red-950/20 p-3 rounded-md border border-red-200 dark:border-red-800">
+              {result.message}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Update Header"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

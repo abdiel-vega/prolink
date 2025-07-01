@@ -59,22 +59,26 @@ export function ExperienceTimeline({ experiences, className = "" }: ExperienceTi
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-8 ${className}`}>
       {sortedExperiences.map((experience, index) => {
         const isCurrentJob = !experience.end_date;
         const duration = calculateDuration(experience.start_date, experience.end_date);
         
         return (
-          <div key={experience.id} className="relative">
-            {/* Timeline line */}
-            {index < sortedExperiences.length - 1 && (
-              <div className="absolute left-6 top-16 w-0.5 h-[calc(100%+1.5rem)] bg-border" />
-            )}
-            
-            <Card className="card-secondary ml-14 relative">
+          <div key={experience.id} className="relative flex">
+            {/* Timeline column */}
+            <div className="flex flex-col items-center mr-6">
               {/* Timeline dot */}
-              <div className="absolute -left-[3.25rem] top-6 w-3 h-3 bg-primary rounded-full border-4 border-background" />
+              <div className="w-4 h-4 bg-primary rounded-full border-4 border-background relative z-10" />
               
+              {/* Timeline line */}
+              {index < sortedExperiences.length - 1 && (
+                <div className="w-0.5 h-full bg-border mt-2 flex-1 min-h-[4rem]" />
+              )}
+            </div>
+            
+            {/* Content */}
+            <Card className="card-secondary flex-1">
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                   <div className="flex-1">
