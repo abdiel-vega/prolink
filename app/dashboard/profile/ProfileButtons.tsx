@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProfileForm, WorkExperienceForm, PortfolioForm, SkillsForm } from "./ProfileForms";
-import { Edit, Plus, Tag } from "lucide-react";
+import { Edit, Plus, Tag, ExternalLink } from "lucide-react";
 import type { Profile, WorkExperience, PortfolioProject } from "@/types";
 
 interface ProfileEditButtonProps {
@@ -133,5 +133,28 @@ export function SkillsManageButton() {
       </Button>
       <SkillsForm open={open} onOpenChange={setOpen} />
     </>
+  );
+}
+
+interface ViewPublicProfileButtonProps {
+  username: string;
+  className?: string;
+}
+
+export function ViewPublicProfileButton({ username, className }: ViewPublicProfileButtonProps) {
+  const handleViewPublicProfile = () => {
+    window.open(`/professional/${username}`, '_blank');
+  };
+
+  return (
+    <Button 
+      variant="outline" 
+      size="sm" 
+      onClick={handleViewPublicProfile}
+      className={className}
+    >
+      <ExternalLink className="w-4 h-4 mr-1" />
+      View Public Profile
+    </Button>
   );
 }

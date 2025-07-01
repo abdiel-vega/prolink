@@ -251,6 +251,71 @@ export async function addPortfolioProject(formData: FormData) {
   }
 }
 
+export async function updatePortfolioProject(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      redirect("/auth/login");
+    }
+
+    const projectId = formData.get("projectId") as string;
+    if (!projectId) {
+      throw new Error("Project ID is required");
+    }
+
+    // Verify ownership
+    const { data: existing, error: checkError } = await supabase
+      .from("portfolio_projects")
+      .select("profile_id")
+      .eq("id", projectId)
+      .single();
+
+    if (checkError || !existing || existing.profile_id !== user.id) {
+      throw new Error("Portfolio project not found or unauthorized");
+    }
+
+    const rawData = {
+      project_title: formData.get("project_title") as string,
+      description: (formData.get("description") as string) || "",
+      project_url: (formData.get("project_url") as string) || "",
+      cover_image_url: (formData.get("cover_image_url") as string) || "",
+    };
+
+    const result = portfolioProjectSchema.safeParse(rawData);
+    if (!result.success) {
+      throw new Error(
+        `Validation failed: ${result.error.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
+    }
+
+    const { error } = await supabase
+      .from("portfolio_projects")
+      .update({
+        project_title: result.data.project_title,
+        description: result.data.description || null,
+        project_url: result.data.project_url || null,
+        cover_image_url: result.data.cover_image_url || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", projectId);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating portfolio project:", error);
+    throw error;
+  }
+}
+
 export async function addSkillToProfile(formData: FormData) {
   try {
     const supabase = await createClient();

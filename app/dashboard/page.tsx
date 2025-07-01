@@ -154,6 +154,18 @@ export default function ProfessionalDashboard() {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            {profile.role === 'PROFESSIONAL' && (
+              <a
+                href={`/professional/${profile.username || profile.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline">
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Public Profile
+                </Button>
+              </a>
+            )}
             <Link href="/dashboard/services/new">
               <Button>
                 <Plus className="w-4 h-4 mr-2" />

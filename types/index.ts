@@ -48,19 +48,19 @@ export type BookingWithDetails = Booking & {
 };
 
 export type ProfessionalWithDetails = Profile & {
-  services: ServiceWithProfile[];
+  services: Service[];
   portfolio_projects: PortfolioProject[];
   work_experience: WorkExperience[];
-  profile_skills: {
-    skill: Skill & {
-      category?: Pick<Category, "id" | "name">;
-    };
-  }[];
-  _count?: {
-    services: number;
-    reviews: number;
+  skills: Skill[];
+  reviews: (Review & {
+    client: Pick<Profile, "username" | "full_name" | "avatar_url">;
+  })[];
+  stats: {
+    rating: number;
+    totalReviews: number;
+    totalCompletedBookings: number;
+    isOnline: boolean;
   };
-  average_rating?: number;
 };
 
 export type ReviewWithDetails = Review & {
@@ -83,12 +83,23 @@ export type ServiceFormData = {
   is_active: boolean;
 };
 
-export type BookingFormData = {
-  service_id: string;
-  booking_start_time: string;
-  duration_minutes?: number;
-  notes?: string;
-};
+export interface BookingFormData {
+  serviceId: string;
+  serviceType: ServiceType;
+
+  // Project-based specific
+  projectRequirements?: string;
+  estimatedDeliveryDate?: Date;
+
+  // Time-based specific
+  bookingDateTime?: Date;
+  duration?: number;
+
+  // Common fields
+  specialRequests?: string;
+  clientNotes?: string;
+  totalAmount: number;
+}
 
 export type ReviewFormData = {
   booking_id: string;
@@ -232,4 +243,69 @@ export interface BookingState {
   nextStep: () => void;
   prevStep: () => void;
   reset: () => void;
+}
+
+// Professional profile types
+export interface ProfessionalHeader {
+  avatar_url: string | null;
+  header_image_url?: string | null;
+  full_name: string | null;
+  username: string | null;
+  title: string | null;
+  bio?: string | null;
+  location?: string | null;
+  rating: number;
+  totalReviews: number;
+  totalCompletedBookings: number;
+  isOnline: boolean;
+  joinedDate: string;
+}
+
+export interface TimeSlot {
+  start: Date;
+  end: Date;
+  available: boolean;
+}
+
+// Professional stats and aggregated data
+export interface ProfessionalStats {
+  averageRating: number;
+  totalReviews: number;
+  totalCompletedBookings: number;
+  responseTime: string;
+  completionRate: number;
+  onlineStatus: boolean;
+  memberSince: string;
+}
+
+export interface ServiceStats {
+  totalBookings: number;
+  averageRating: number;
+  totalReviews: number;
+  completionRate: number;
+}
+
+// Portfolio and experience types for display
+export interface PortfolioItem extends PortfolioProject {
+  technologies?: string[];
+  featured?: boolean;
+}
+
+export interface ExperienceItem extends WorkExperience {
+  skills?: string[];
+  achievements?: string[];
+}
+
+// Review display types
+export interface ReviewWithClient extends Review {
+  client: Pick<Profile, "username" | "full_name" | "avatar_url">;
+  helpful_votes?: number;
+  verified_purchase: boolean;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: Record<number, number>;
+  recentReviews: ReviewWithClient[];
 }

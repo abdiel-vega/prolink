@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateProfileInfo, addWorkExperience, updateWorkExperience, addPortfolioProject, addSkillToProfile, addExistingSkillToProfile, getAvailableSkillsByCategory, removeSkillFromProfile } from "./actions";
+import { updateProfileInfo, addWorkExperience, updateWorkExperience, addPortfolioProject, updatePortfolioProject, addSkillToProfile, addExistingSkillToProfile, getAvailableSkillsByCategory, removeSkillFromProfile } from "./actions";
 import { Loader2, Calendar, Building, ExternalLink, Tag, Check, Plus, X } from "lucide-react";
 import type { Profile, WorkExperience, PortfolioProject } from "@/types";
 
@@ -225,7 +225,7 @@ export function WorkExperienceForm({ experience, open, onOpenChange }: WorkExper
     });
 
     if (isEditing) {
-      formData.append("id", experience.id);
+      formData.append("experienceId", experience.id);
     }
 
     const result = isEditing 
@@ -384,10 +384,12 @@ export function PortfolioForm({ project, open, onOpenChange }: PortfolioFormProp
     });
 
     if (isEditing) {
-      formData.append("id", project.id);
+      formData.append("projectId", project.id);
     }
 
-    const result = await addPortfolioProject(formData);
+    const result = isEditing 
+      ? await updatePortfolioProject(formData)
+      : await addPortfolioProject(formData);
     
     setResult(result);
     setIsSubmitting(false);

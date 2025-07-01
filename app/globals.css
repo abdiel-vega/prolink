@@ -164,3 +164,23 @@
     transform: scale(1.05);
   }
 }
+
+/* Custom component styles */
+@layer components {
+  .card-surface {
+    @apply bg-card border border-border shadow-sm;
+  }
+  
+  .status-success {
+    @apply border-green-200 bg-green-50 text-green-700;
+    @apply dark:border-green-800 dark:bg-green-950/20 dark:text-green-400;
+  }
+  
+  .glass-effect {
+    @apply bg-background/80 backdrop-blur-md;
+  }
+  
+  .hero-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-green-light)) 100%);
+  }
+}

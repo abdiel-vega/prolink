@@ -11,7 +11,8 @@ import {
   WorkExperienceAddButton, 
   PortfolioEditButton, 
   PortfolioAddButton, 
-  SkillsManageButton 
+  SkillsManageButton,
+  ViewPublicProfileButton 
 } from './ProfileButtons'
 import { SkillCard } from './SkillCard'
 import { formatDate } from '@/lib/utils/formatting'
@@ -139,9 +140,14 @@ export default async function ProfilePage() {
             Manage your profile information and showcase your experience
           </p>
         </div>
-        <Badge variant={isProfessional ? 'default' : 'secondary'}>
-          {profile.role}
-        </Badge>
+        <div className="flex items-center space-x-3">
+          {isProfessional && (
+            <ViewPublicProfileButton username={profile.username || profile.id} />
+          )}
+          <Badge variant={isProfessional ? 'default' : 'secondary'}>
+            {profile.role}
+          </Badge>
+        </div>
       </div>
 
       {/* Basic Profile Information */}

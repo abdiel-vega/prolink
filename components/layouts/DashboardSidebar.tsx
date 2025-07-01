@@ -13,6 +13,7 @@ import {
   BriefcaseBusiness,
   User,
   Settings,
+  ExternalLink,
 } from "lucide-react";
 
 const navItems = [
@@ -90,6 +91,48 @@ export function DashboardSidebar() {
             return <div key={item.href}>{linkContent}</div>;
           })}
         </nav>
+
+        {/* Public Profile Link for Professionals */}
+        {profile?.role === 'PROFESSIONAL' && (
+          <div className="px-4 pb-2">
+            <hr className="border-border mb-2" />
+            {(() => {
+              const linkContent = (
+                <a
+                  href={`/professional/${profile.username || profile.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "flex items-center rounded-lg p-2 transition-all duration-200",
+                    "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  <ExternalLink className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && (
+                    <span className="ml-3 text-sm font-medium">
+                      View Public Profile
+                    </span>
+                  )}
+                </a>
+              );
+
+              if (!isExpanded) {
+                return (
+                  <Tooltip delayDuration={100}>
+                    <TooltipTrigger asChild>
+                      {linkContent}
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-popover border-border text-popover-foreground">
+                      <p>View Public Profile</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return linkContent;
+            })()}
+          </div>
+        )}
 
         {/* User Profile Section */}
         <div className="p-4">
