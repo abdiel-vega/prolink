@@ -197,6 +197,7 @@ export const useBookingStore = create<BookingStore>()(
         const { selectedService, bookingForm } = get();
 
         if (!selectedService || !bookingForm.serviceId) {
+          set({ error: "Missing service information", isLoading: false });
           return { success: false, error: "Missing service information" };
         }
 
@@ -205,11 +206,21 @@ export const useBookingStore = create<BookingStore>()(
         try {
           const supabase = createClient();
 
+          // Get current user
+          const {
+            data: { user },
+            error: userError,
+          } = await supabase.auth.getUser();
+
+          if (userError || !user) {
+            throw new Error("User not authenticated");
+          }
+
           // Create the booking
           const { data: booking, error: bookingError } = await supabase
             .from("bookings")
             .insert({
-              client_id: (await supabase.auth.getUser()).data.user!.id,
+              client_id: user.id,
               professional_profile_id: selectedService.profile_id,
               service_id: selectedService.id,
               booking_start_time:
@@ -236,21 +247,24 @@ export const useBookingStore = create<BookingStore>()(
             .single();
 
           if (bookingError) {
-            throw bookingError;
+            console.error("Booking creation error:", bookingError);
+            throw new Error(bookingError.message || "Failed to create booking");
           }
 
           // TODO: Process payment with Stripe
           // For now, we'll simulate successful payment
 
-          set({ isLoading: false });
+          set({ isLoading: false, error: null });
           return { success: true, bookingId: booking.id };
         } catch (error) {
           console.error("Error creating booking:", error);
+          const errorMessage =
+            error instanceof Error ? error.message : "Failed to create booking";
           set({
-            error: "Failed to create booking",
+            error: errorMessage,
             isLoading: false,
           });
-          return { success: false, error: "Failed to create booking" };
+          return { success: false, error: errorMessage };
         }
       },
 

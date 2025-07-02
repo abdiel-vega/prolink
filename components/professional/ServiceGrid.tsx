@@ -167,7 +167,7 @@ export function ServiceGrid({ services, onBookService, className = "" }: Service
               
               <Button 
                 onClick={() => onBookService(service)}
-                className="w-full bg-white text-gray-900 hover:bg-gray-100 font-semibold"
+                className="w-full font-semibold shadow-md bg-muted text-foreground hover:bg-foreground hover:text-background"
               >
                 <DollarSign className="w-4 h-4 mr-2" />
                 Book Now - {formatPrice(service.price_in_cents)}

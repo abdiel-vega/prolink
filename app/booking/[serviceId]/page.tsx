@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { BookingForm } from "@/components/booking/BookingForm";
+import { BookingPageClient } from "@/app/booking/[serviceId]/BookingPageClient";
 import { createClient } from "@/lib/supabase/server";
 import type { ServiceWithProfile } from "@/types";
 
@@ -61,36 +61,7 @@ async function BookingPageContent({ params }: BookingPageProps) {
     notFound();
   }
 
-  const handleBookingSuccess = (bookingId: string) => {
-    // Redirect to booking confirmation or dashboard
-    window.location.href = `/dashboard/bookings?booking=${bookingId}`;
-  };
-
-  const handleClose = () => {
-    // Go back to professional profile or service page
-    window.history.back();
-  };
-
-  return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Book Service: {service.title}
-          </h1>
-          <p className="text-muted-foreground">
-            Complete your booking with {service.profile.full_name || service.profile.username}
-          </p>
-        </div>
-
-        <BookingForm
-          service={service}
-          onSuccess={handleBookingSuccess}
-          onClose={handleClose}
-        />
-      </div>
-    </div>
-  );
+  return <BookingPageClient service={service} />;
 }
 
 export default function Page({ params }: BookingPageProps) {

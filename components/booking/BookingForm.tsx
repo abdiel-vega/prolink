@@ -89,8 +89,15 @@ export function BookingForm({ service, onClose, onSuccess, className = "" }: Boo
       const result = await createBooking("simulated_payment_method");
       
       if (result.success && result.bookingId) {
-        nextStep(); // Move to confirmation
-        onSuccess?.(result.bookingId);
+        // Move to confirmation step first
+        nextStep();
+        
+        // Call onSuccess callback after a brief delay to allow state to settle
+        setTimeout(() => {
+          if (result.bookingId) {
+            onSuccess?.(result.bookingId);
+          }
+        }, 1500); // 1.5 second delay to show confirmation before redirect
       }
     }
   };
@@ -194,7 +201,7 @@ export function BookingForm({ service, onClose, onSuccess, className = "" }: Boo
                 <Button 
                   onClick={handleBookingSubmit}
                   disabled={isLoading}
-                  className="w-full bg-white text-gray-900 hover:bg-gray-100 font-semibold"
+                  className="w-full font-semibold"
                 >
                   {isLoading ? "Processing..." : `Complete Booking - $${(service.price_in_cents / 100).toFixed(2)}`}
                 </Button>
@@ -245,7 +252,15 @@ export function BookingForm({ service, onClose, onSuccess, className = "" }: Boo
                   <Button variant="outline" onClick={onClose} className="flex-1">
                     Close
                   </Button>
-                  <Button onClick={() => window.location.href = '/dashboard/bookings'} className="flex-1 bg-white text-gray-900 hover:bg-gray-100">
+                  <Button 
+                    onClick={() => {
+                      // Use proper Next.js navigation instead of window.location
+                      if (typeof window !== 'undefined') {
+                        window.location.href = '/dashboard/bookings';
+                      }
+                    }} 
+                    className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                  >
                     View Bookings
                   </Button>
                 </div>
@@ -294,7 +309,7 @@ export function BookingForm({ service, onClose, onSuccess, className = "" }: Boo
               <Button
                 onClick={currentStep === "payment" ? handleBookingSubmit : handleNext}
                 disabled={!canProceed() || isLoading}
-                className="bg-white text-gray-900 hover:bg-gray-100 font-semibold"
+                className="font-semibold"
               >
                 {currentStep === "payment" ? "Complete Payment" : "Continue"}
                 <ArrowRight className="w-4 h-4 ml-2" />

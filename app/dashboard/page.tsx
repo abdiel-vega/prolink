@@ -155,16 +155,37 @@ export default function ProfessionalDashboard() {
           </div>
           <div className="flex items-center space-x-3">
             {profile.role === 'PROFESSIONAL' && (
-              <a
-                href={`/professional/${profile.username || profile.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline">
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Public Profile
-                </Button>
-              </a>
+              <>
+                <a
+                  href={`/professional/${profile.username || profile.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline">
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Public Profile
+                  </Button>
+                </a>
+                {/* Test Booking Button */}
+                {services.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // Use the first available service for testing
+                      const testService = services.find(s => s.is_active);
+                      if (testService) {
+                        window.open(`/booking/${testService.id}`, '_blank');
+                      } else {
+                        alert('No active services available for testing. Please create and activate a service first.');
+                      }
+                    }}
+                    className="bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Test Booking
+                  </Button>
+                )}
+              </>
             )}
             <Link href="/dashboard/services/new">
               <Button>
