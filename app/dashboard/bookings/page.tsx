@@ -73,7 +73,7 @@ function BookingCard({ booking, userRole, userId }: BookingCardProps) {
             <div className="flex items-center space-x-2">
               <DollarSign className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium text-foreground">
-                {formatCurrency(booking.amount_paid_in_cents)}
+                {formatCurrency(booking.total_amount_cents || 0)}
               </span>
             </div>
             <div className="flex items-center space-x-2">

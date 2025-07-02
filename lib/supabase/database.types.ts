@@ -11,43 +11,55 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
-          amount_paid_in_cents: number
           booking_end_time: string | null
           booking_start_time: string
           client_id: string
           created_at: string
           id: string
           notes: string | null
+          platform_fee_cents: number | null
+          professional_earnings_cents: number | null
           professional_profile_id: string
           service_id: string
+          special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"]
-          stripe_charge_id: string | null
+          stripe_payment_id: string | null
+          stripe_payment_intent_id: string | null
+          total_amount_cents: number | null
         }
         Insert: {
-          amount_paid_in_cents: number
           booking_end_time?: string | null
           booking_start_time: string
           client_id: string
           created_at?: string
           id?: string
           notes?: string | null
+          platform_fee_cents?: number | null
+          professional_earnings_cents?: number | null
           professional_profile_id: string
           service_id: string
+          special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
-          stripe_charge_id?: string | null
+          stripe_payment_id?: string | null
+          stripe_payment_intent_id?: string | null
+          total_amount_cents?: number | null
         }
         Update: {
-          amount_paid_in_cents?: number
           booking_end_time?: string | null
           booking_start_time?: string
           client_id?: string
           created_at?: string
           id?: string
           notes?: string | null
+          platform_fee_cents?: number | null
+          professional_earnings_cents?: number | null
           professional_profile_id?: string
           service_id?: string
+          special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
-          stripe_charge_id?: string | null
+          stripe_payment_id?: string | null
+          stripe_payment_intent_id?: string | null
+          total_amount_cents?: number | null
         }
         Relationships: [
           {
@@ -249,6 +261,13 @@ export type Database = {
             foreignKeyName: "reviews_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: true
+            referencedRelation: "booking_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -393,9 +412,67 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      booking_analytics: {
+        Row: {
+          booking_end_time: string | null
+          booking_start_time: string | null
+          client_id: string | null
+          client_name: string | null
+          created_at: string | null
+          id: string | null
+          notes: string | null
+          platform_fee_cents: number | null
+          platform_fee_percentage: number | null
+          professional_earnings_cents: number | null
+          professional_name: string | null
+          professional_profile_id: string | null
+          service_id: string | null
+          service_price: number | null
+          service_title: string | null
+          special_requests: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          stripe_payment_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          total_amount_cents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_professional_profile_id_fkey"
+            columns: ["professional_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      calculate_booking_fees: {
+        Args: {
+          service_amount_cents: number
+          professional_subscription_tier?: string
+        }
+        Returns: {
+          total_amount_cents: number
+          platform_fee_cents: number
+          professional_earnings_cents: number
+        }[]
+      }
       get_my_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]

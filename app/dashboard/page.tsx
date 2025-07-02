@@ -82,7 +82,7 @@ export default function ProfessionalDashboard() {
       
       // Calculate total earnings from completed bookings
       const completedBookings = bookingsData?.filter(b => b.status === 'COMPLETED') || []
-      const totalEarnings = completedBookings.reduce((sum, booking) => sum + booking.amount_paid_in_cents, 0)
+      const totalEarnings = completedBookings.reduce((sum, booking) => sum + (booking.professional_earnings_cents || booking.total_amount_cents || 0), 0)
 
       setServices(servicesData || [])
       setBookings(bookingsData || [])
@@ -310,7 +310,7 @@ export default function ProfessionalDashboard() {
                       <div className="text-right">
                         <StatusBadge status={booking.status} />
                         <p className="text-sm font-medium text-foreground mt-1">
-                          {formatCurrency(booking.amount_paid_in_cents)}
+                          {formatCurrency(booking.total_amount_cents || 0)}
                         </p>
                       </div>
                     </div>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { BookingFormData, ServiceWithProfile, TimeSlot } from "@/types";
+import { BUSINESS_RULES } from "@/lib/utils/constants";
 
 interface BookingFormStep {
   id: "service" | "details" | "payment" | "confirmation";
@@ -233,14 +234,17 @@ export const useBookingStore = create<BookingStore>()(
                         bookingForm.duration * 60 * 1000
                     ).toISOString()
                   : null,
-              notes: [
-                bookingForm.projectRequirements,
-                bookingForm.specialRequests,
-                bookingForm.clientNotes,
-              ]
-                .filter(Boolean)
-                .join("\n\n"),
-              amount_paid_in_cents: selectedService.price_in_cents,
+              notes: bookingForm.projectRequirements || null,
+              special_requests: bookingForm.specialRequests || null,
+              total_amount_cents: selectedService.price_in_cents,
+              platform_fee_cents: Math.round(
+                selectedService.price_in_cents *
+                  BUSINESS_RULES.PLATFORM_FEE_PERCENTAGE
+              ),
+              professional_earnings_cents: Math.round(
+                selectedService.price_in_cents *
+                  (1 - BUSINESS_RULES.PLATFORM_FEE_PERCENTAGE)
+              ),
               status: "PENDING_CONFIRMATION",
             })
             .select()
